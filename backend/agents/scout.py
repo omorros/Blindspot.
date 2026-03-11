@@ -50,7 +50,7 @@ Return ONLY valid JSON in this exact format:
 }
 ```
 
-Be thorough but concise. Include 8-15 companies. Group them into clear categories.
+Be thorough but concise. Include 8-15 companies that you can ACTUALLY identify by name from the data. Do NOT extrapolate or inflate counts from general market statistics — only list companies you can specifically name.
 If you can't determine funding, estimate based on company stage/size."""
 
 

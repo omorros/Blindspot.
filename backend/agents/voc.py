@@ -43,7 +43,7 @@ Return ONLY valid JSON in this exact format:
   "themes": {
     "Theme name": <number of complaints matching this theme>
   },
-  "total_complaints": <total unique complaints found>,
+  "total_complaints": <only count complaints you can actually quote or paraphrase from the data — do NOT use general statistics>,
   "top_pain_point": "The single biggest unmet need, stated clearly",
   "sentiment_summary": "1-2 sentences on overall market sentiment"
 }
