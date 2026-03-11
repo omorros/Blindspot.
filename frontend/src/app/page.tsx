@@ -22,6 +22,7 @@
 import { useState } from "react";
 import { useAnalysis } from "@/hooks/useSSE";
 import SearchInput from "@/components/SearchInput";
+import AgentStatusCards from "@/components/AgentStatusCards";
 import ActivityFeed from "@/components/ActivityFeed";
 import GapCardComponent from "@/components/GapCard";
 import InvestmentMemo from "@/components/InvestmentMemo";
@@ -67,16 +68,31 @@ export default function Home() {
       {/* ── Main Content (split pane) ───────────────────── */}
       <div className="flex-1 flex min-h-0">
         {/* Left Panel — Search + Activity Feed */}
-        <div className="w-[380px] flex-none border-r border-neutral-800 bg-neutral-950 flex flex-col">
+        <div className="w-[420px] flex-none border-r border-neutral-800 bg-neutral-950 flex flex-col">
           {/* Search Input */}
-          <div className="flex-none p-4 border-b border-neutral-800/50">
+          <div className="flex-none px-5 pt-5 pb-4">
             <SearchInput onSubmit={analyze} isLoading={isLoading} />
           </div>
 
-          {/* Activity Feed */}
-          <div className="flex-1 min-h-0">
-            <ActivityFeed activities={activities} isLoading={isLoading} />
-          </div>
+          {/* Agent Status Cards */}
+          {(isLoading || activities.length > 0) && (
+            <div className="flex-none px-5 pb-4">
+              <AgentStatusCards activities={activities} isLoading={isLoading} />
+            </div>
+          )}
+
+          {/* Divider + Activity Log */}
+          {activities.length > 0 && (
+            <>
+              <div className="flex-none px-5">
+                <div className="border-t border-neutral-800" />
+                <p className="text-[10px] uppercase tracking-widest text-neutral-600 pt-3 pb-2">Activity Log</p>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ActivityFeed activities={activities} isLoading={isLoading} />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right Panel — Results */}
