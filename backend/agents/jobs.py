@@ -44,7 +44,7 @@ Return ONLY valid JSON in this exact format:
     "Description of roles/capabilities that NO company is hiring for — these indicate whitespace"
   ],
   "hot_skills": ["Skills appearing in 3+ postings — shows market demand"],
-  "total_jobs": <total number of relevant postings found>,
+  "total_jobs": <number of SPECIFIC job postings you can cite — only count ones you actually see in the data, NOT general search result counts>,
   "market_signals": [
     "2-3 key takeaways about what the hiring landscape reveals"
   ]
