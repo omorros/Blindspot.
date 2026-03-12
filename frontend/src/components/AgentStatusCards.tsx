@@ -2,6 +2,7 @@
 
 import type { Activity } from "@/types";
 import { AGENT_CONFIG, type AgentName } from "@/types";
+import { BorderBeam } from "@/components/ui/border-beam";
 
 interface Props {
   activities: Activity[];
@@ -14,6 +15,12 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   scout: "Competitive landscape",
   voc: "Customer pain points",
   jobs: "Hiring signals",
+};
+
+const AGENT_BEAM_COLORS: Record<string, { from: string; to: string }> = {
+  scout: { from: "#60a5fa", to: "#3b82f6" },
+  voc: { from: "#a78bfa", to: "#8b5cf6" },
+  jobs: { from: "#fbbf24", to: "#f59e0b" },
 };
 
 export default function AgentStatusCards({ activities, isLoading }: Props) {
@@ -39,11 +46,12 @@ export default function AgentStatusCards({ activities, isLoading }: Props) {
       {AGENTS.map((agent) => {
         const config = AGENT_CONFIG[agent];
         const state = getAgentState(agent);
+        const beamColors = AGENT_BEAM_COLORS[agent];
 
         return (
           <div
             key={agent}
-            className={`rounded-lg border px-4 py-3 transition-all duration-300 ${
+            className={`relative rounded-xl overflow-hidden border px-4 py-3 transition-all duration-300 ${
               state.isDone
                 ? "border-emerald-500/20 bg-emerald-500/5"
                 : state.isActive
@@ -55,12 +63,12 @@ export default function AgentStatusCards({ activities, isLoading }: Props) {
               <div className="flex items-center gap-2.5">
                 {/* Status indicator */}
                 <div
-                  className={`w-2 h-2 rounded-full flex-none ${
+                  className={`w-1.5 h-1.5 rounded-full flex-none transition-all duration-300 ${
                     state.isDone
                       ? "bg-emerald-500"
                       : state.isActive
                         ? `${config.bg} animate-pulse_dot`
-                        : "bg-[var(--text-muted)]/40"
+                        : "bg-[var(--text-muted)]/30"
                   }`}
                 />
                 <div>
@@ -92,9 +100,20 @@ export default function AgentStatusCards({ activities, isLoading }: Props) {
 
             {/* Latest message */}
             {state.latest && (
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5 pl-[18px] truncate">
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5 pl-4 truncate">
                 {state.latest.message}
               </p>
+            )}
+
+            {/* Active border beam */}
+            {state.isActive && (
+              <BorderBeam
+                size={60}
+                duration={3}
+                colorFrom={beamColors.from}
+                colorTo={beamColors.to}
+                borderWidth={1}
+              />
             )}
           </div>
         );
