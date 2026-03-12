@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAnalysis } from "@/hooks/useSSE";
 import SearchInput from "@/components/SearchInput";
 import AgentStatusCards from "@/components/AgentStatusCards";
@@ -13,78 +13,78 @@ export default function Home() {
   const { activities, gaps, stats, summary, isLoading, error, analyze, reset } =
     useAnalysis();
   const [showMemo, setShowMemo] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const hasResults = gaps.length > 0;
 
-  return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="flex-none border-b border-neutral-800/60 px-6 py-3.5">
-        <div className="flex items-center justify-between">
-          <h1 className="font-serif text-[17px] font-semibold tracking-tight text-white">
-            blindspot
-          </h1>
+  const handleAnalyze = useCallback(
+    (query: string) => {
+      setHasStarted(true);
+      setShowMemo(false);
+      analyze(query);
+    },
+    [analyze],
+  );
 
-          {hasResults && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowMemo(!showMemo)}
-                className="text-[11px] tracking-wide uppercase text-neutral-500 hover:text-neutral-200 transition-colors"
-              >
-                {showMemo ? "Gaps" : "Memo"}
-              </button>
-              <span className="text-neutral-800">|</span>
-              <button
-                onClick={reset}
-                className="text-[11px] tracking-wide uppercase text-neutral-600 hover:text-neutral-300 transition-colors"
-              >
-                Reset
-              </button>
+  const handleReset = useCallback(() => {
+    reset();
+    setHasStarted(false);
+    setShowMemo(false);
+  }, [reset]);
+
+  // ─── Centered view: Landing OR Loading ───
+  if (!hasResults) {
+    return (
+      <div className="h-screen flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-lg text-center">
+            {/* Logo */}
+            <h1 className="font-serif text-3xl font-semibold text-[var(--text-primary)] tracking-tight mb-2">
+              blindspot
+            </h1>
+            <p className="text-sm text-[var(--text-muted)] mb-10">
+              Multi-agent market gap analysis
+            </p>
+
+            {/* Search */}
+            <div className="mb-8">
+              <SearchInput onSubmit={handleAnalyze} isLoading={isLoading} />
             </div>
-          )}
-        </div>
-      </header>
 
-      {/* Split pane */}
-      <div className="flex-1 flex min-h-0">
-        {/* Left Panel */}
-        <div className="w-[400px] flex-none border-r border-neutral-800/60 flex flex-col">
-          <div className="flex-none px-5 pt-5 pb-4">
-            <SearchInput onSubmit={analyze} isLoading={isLoading} />
-          </div>
-
-          {(isLoading || activities.length > 0) && (
-            <div className="flex-none px-5 pb-3">
-              <AgentStatusCards activities={activities} isLoading={isLoading} />
-            </div>
-          )}
-
-          {activities.length > 0 && (
-            <>
-              <div className="flex-none px-5 pt-1 pb-2">
-                <span className="text-[9px] uppercase tracking-[0.2em] text-neutral-700">
-                  log
-                </span>
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 mb-6 text-left">
+                <p className="text-sm text-red-400">{error}</p>
               </div>
-              <div className="flex-1 min-h-0">
-                <ActivityFeed activities={activities} isLoading={isLoading} />
-              </div>
-            </>
-          )}
-        </div>
+            )}
 
-        {/* Right Panel */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {/* Empty state */}
-          {!hasResults && !isLoading && !error && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-sm">
-                <h2 className="font-serif text-xl text-white mb-3">
-                  Find the gap.
-                </h2>
-                <p className="text-[12px] text-neutral-600 leading-relaxed mb-6">
-                  Three agents analyze competitive landscape, customer pain points,
-                  and hiring signals in parallel. Results in under a minute.
+            {/* Loading state — agent progress */}
+            {hasStarted && isLoading && (
+              <div className="animate-fade_in space-y-5 text-left">
+                <AgentStatusCards activities={activities} isLoading={isLoading} />
+
+                {activities.length > 0 && (
+                  <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-raised)] overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-[var(--border-subtle)]">
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium">
+                        Activity Log
+                      </p>
+                    </div>
+                    <div className="max-h-[180px] overflow-y-auto activity-scroll">
+                      <div className="px-4 py-2">
+                        <ActivityFeed activities={activities} isLoading={isLoading} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Example queries — only before first search */}
+            {!hasStarted && (
+              <div className="space-y-3 animate-fade_in">
+                <p className="text-[11px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                  Try an example
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
@@ -94,65 +94,153 @@ export default function Home() {
                   ].map((q) => (
                     <button
                       key={q}
-                      onClick={() => analyze(q)}
-                      className="text-[11px] px-3 py-1.5 border border-neutral-800 text-neutral-500
-                                 hover:border-neutral-600 hover:text-neutral-300 transition-all"
+                      onClick={() => handleAnalyze(q)}
+                      className="text-xs px-4 py-2 rounded-lg border border-[var(--border)]
+                                 text-[var(--text-tertiary)] bg-[var(--surface-raised)]
+                                 hover:border-[var(--text-muted)] hover:text-[var(--text-secondary)]
+                                 transition-all duration-200"
                     >
                       {q}
                     </button>
                   ))}
                 </div>
+
+                {/* How it works */}
+                <div className="mt-12 pt-2 grid grid-cols-3 gap-6">
+                  {[
+                    { label: "Scout", desc: "Maps competitive landscape", color: "var(--accent-blue)" },
+                    { label: "VoC", desc: "Finds customer pain points", color: "var(--accent-violet)" },
+                    { label: "Jobs", desc: "Analyzes hiring signals", color: "var(--accent-amber)" },
+                  ].map((agent) => (
+                    <div key={agent.label} className="text-center">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full mx-auto mb-2.5"
+                        style={{ backgroundColor: agent.color }}
+                      />
+                      <p className="text-xs font-medium text-[var(--text-secondary)] mb-1">
+                        {agent.label}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                        {agent.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Dashboard view — only shown when results are ready ───
+  return (
+    <div className="flex flex-col h-screen bg-[var(--surface)] animate-fade_in">
+      {/* Header */}
+      <header className="flex-none border-b border-[var(--border-subtle)] px-6 py-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={handleReset} className="group flex items-center gap-3">
+              <h1 className="font-serif text-lg font-semibold text-[var(--text-primary)] tracking-tight group-hover:text-white transition-colors">
+                blindspot
+              </h1>
+            </button>
+            <span className="text-[11px] text-[var(--text-muted)]">/</span>
+            <span className="text-[11px] text-[var(--text-muted)]">analysis</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowMemo(!showMemo)}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                showMemo
+                  ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                  : "border-[var(--border)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              }`}
+            >
+              {showMemo ? "View Gaps" : "Memo"}
+            </button>
+            <button
+              onClick={handleReset}
+              className="text-xs px-3 py-1.5 rounded border border-[var(--border)] text-[var(--text-muted)]
+                         hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)] transition-colors"
+            >
+              New Search
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left Panel — Agents + Log */}
+        <div className="w-[400px] flex-none border-r border-[var(--border-subtle)] flex flex-col">
+          {/* Agent status cards */}
+          {activities.length > 0 && (
+            <div className="flex-none px-5 pt-4 pb-3">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium mb-2.5">
+                Agents
+              </p>
+              <AgentStatusCards activities={activities} isLoading={isLoading} />
+            </div>
+          )}
+
+          {/* Activity log */}
+          {activities.length > 0 && (
+            <>
+              <div className="flex-none px-5 pt-2 pb-2 border-t border-[var(--border-subtle)]">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium">
+                  Activity Log
+                </p>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ActivityFeed activities={activities} isLoading={isLoading} />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Right Panel — Results */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Gap Cards */}
+          {!showMemo && (
+            <div className="px-8 py-8">
+              {summary && (
+                <div className="mb-8 animate-fade_in">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    {summary.market_summary}
+                  </p>
+                  <div className="flex gap-5 mt-4">
+                    <div className="text-xs text-[var(--text-muted)]">
+                      <span className="text-[var(--text-primary)] font-medium">{summary.companies_found}</span> companies
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)]">
+                      <span className="text-[var(--text-primary)] font-medium">{summary.complaints_found}</span> complaints
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)]">
+                      <span className="text-[var(--text-primary)] font-medium">{summary.jobs_analyzed}</span> jobs
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {gaps.map((gap, i) => (
+                  <div
+                    key={gap.id}
+                    className="animate-fade_in"
+                    style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}
+                  >
+                    <GapCardComponent gap={gap} rank={i + 1} />
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {error && (
-            <div className="p-8">
-              <p className="text-[12px] text-red-400/80">{error}</p>
-            </div>
-          )}
-
-          {/* Loading */}
-          {isLoading && !hasResults && (
-            <div className="px-10 py-8 max-w-2xl space-y-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse space-y-2">
-                  <div className="h-3 bg-neutral-900 w-3/5" />
-                  <div className="h-2 bg-neutral-900/60 w-full" />
-                  <div className="h-2 bg-neutral-900/60 w-4/5" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Gap Cards */}
-          {hasResults && !showMemo && (
-            <div className="px-10 py-8 max-w-2xl">
-              {summary && (
-                <div className="mb-10 animate-fade_in">
-                  <p className="text-[12px] text-neutral-500 leading-[1.7]">
-                    {summary.market_summary}
-                  </p>
-                  <div className="flex gap-6 mt-4 text-[10px] text-neutral-700 uppercase tracking-wider">
-                    <span>{summary.companies_found} companies</span>
-                    <span>{summary.complaints_found} complaints</span>
-                    <span>{summary.jobs_analyzed} jobs</span>
-                  </div>
-                </div>
-              )}
-              {gaps.map((gap, i) => (
-                <div
-                  key={gap.id}
-                  className="animate-fade_in"
-                  style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}
-                >
-                  <GapCardComponent gap={gap} rank={i + 1} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {hasResults && showMemo && (
+          {/* Investment Memo */}
+          {showMemo && (
             <div className="p-8">
               <InvestmentMemo gaps={gaps} summary={summary} />
             </div>

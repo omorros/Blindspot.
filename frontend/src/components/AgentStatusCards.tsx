@@ -10,6 +10,12 @@ interface Props {
 
 const AGENTS: AgentName[] = ["scout", "voc", "jobs"];
 
+const AGENT_DESCRIPTIONS: Record<string, string> = {
+  scout: "Competitive landscape",
+  voc: "Customer pain points",
+  jobs: "Hiring signals",
+};
+
 export default function AgentStatusCards({ activities, isLoading }: Props) {
   function getAgentState(agent: AgentName) {
     const agentActivities = activities.filter((a) => a.agent === agent);
@@ -29,7 +35,7 @@ export default function AgentStatusCards({ activities, isLoading }: Props) {
   if (activities.length === 0 && !isLoading) return null;
 
   return (
-    <div className="grid grid-cols-3 gap-px bg-neutral-800/40 border border-neutral-800/40">
+    <div className="space-y-2">
       {AGENTS.map((agent) => {
         const config = AGENT_CONFIG[agent];
         const state = getAgentState(agent);
@@ -37,38 +43,59 @@ export default function AgentStatusCards({ activities, isLoading }: Props) {
         return (
           <div
             key={agent}
-            className={`bg-[#0a0a0a] px-3 py-2.5 transition-all duration-500 ${
-              state.isActive ? "bg-neutral-900/80" : ""
+            className={`rounded-lg border px-4 py-3 transition-all duration-300 ${
+              state.isDone
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : state.isActive
+                  ? "border-[var(--border)] bg-[var(--surface-raised)]"
+                  : "border-[var(--border-subtle)] bg-[var(--surface)]"
             }`}
           >
-            {/* Agent name + status */}
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {/* Status indicator */}
                 <div
-                  className={`w-1 h-1 rounded-full ${
+                  className={`w-2 h-2 rounded-full flex-none ${
                     state.isDone
                       ? "bg-emerald-500"
                       : state.isActive
                         ? `${config.bg} animate-pulse_dot`
-                        : "bg-neutral-800"
+                        : "bg-[var(--text-muted)]/40"
                   }`}
                 />
-                <span className="text-[10px] uppercase tracking-[0.12em] text-neutral-500">
-                  {config.label}
-                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
+                      {config.label}
+                    </span>
+                    <span className="text-[11px] text-[var(--text-muted)]">
+                      {AGENT_DESCRIPTIONS[agent]}
+                    </span>
+                  </div>
+                </div>
               </div>
-              {state.isDone && (
-                <span className="text-[9px] text-emerald-600">done</span>
-              )}
-              {state.isActive && (
-                <span className="text-[9px] text-neutral-700">{state.messageCount}</span>
-              )}
+
+              <div className="flex items-center gap-2">
+                {state.isActive && (
+                  <span className="text-[11px] text-[var(--text-muted)] tabular-nums">
+                    {state.messageCount} steps
+                  </span>
+                )}
+                {state.isDone && (
+                  <span className="text-[11px] text-emerald-500 font-medium">Complete</span>
+                )}
+                {state.isWaiting && (
+                  <span className="text-[11px] text-[var(--text-muted)]">Waiting...</span>
+                )}
+              </div>
             </div>
 
             {/* Latest message */}
-            <p className="text-[10px] text-neutral-600 truncate leading-relaxed h-3.5">
-              {state.latest?.message || (state.isWaiting ? "..." : "")}
-            </p>
+            {state.latest && (
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5 pl-[18px] truncate">
+                {state.latest.message}
+              </p>
+            )}
           </div>
         );
       })}
