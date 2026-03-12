@@ -13,7 +13,7 @@ const serif = IBM_Plex_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Blindspot",
+  title: "blindspot.",
   description: "Market gap analysis",
 };
 

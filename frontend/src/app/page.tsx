@@ -98,7 +98,7 @@ export default function Home() {
                 {/* Logo */}
                 <BlurFade delay={0} duration={0.5}>
                   <h1 className="font-serif text-4xl font-semibold text-[var(--text-primary)] tracking-tight mb-2">
-                    blindspot
+                    blindspot<span className="text-[var(--accent-emerald)]">.</span>
                   </h1>
                 </BlurFade>
                 <BlurFade delay={0.08} duration={0.5}>
@@ -258,7 +258,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <button onClick={handleReset} className="group flex items-center gap-3">
                     <h1 className="font-serif text-lg font-semibold text-[var(--text-primary)] tracking-tight group-hover:text-white transition-colors">
-                      blindspot
+                      blindspot<span className="text-[var(--accent-emerald)]">.</span>
                     </h1>
                   </button>
                   <span className="text-[var(--border)]">/</span>
