@@ -20,39 +20,51 @@ Built for VCs, product teams, and strategy consultants who need rapid market int
 ## Architecture
 
 ```mermaid
-flowchart TB
-    User([User]) -->|"Natural language query"| FE[Next.js Frontend]
-    FE -->|"POST /analyze"| API[FastAPI Backend]
-    API --> Coord[Coordinator]
+flowchart LR
+    subgraph Input
+        User([User])
+    end
 
-    Coord --> Par{{"asyncio.gather()"}}
+    subgraph Frontend
+        FE[Next.js]
+    end
 
-    Par --> Scout[Scout Agent]
-    Par --> VoC[VoC Agent]
-    Par --> Jobs[Jobs Agent]
+    subgraph Backend
+        API[FastAPI] --> Coord[Coordinator]
+        Coord --> Par{{"asyncio.gather()"}}
+    end
 
-    Scout -->|"Company search + scrape"| MCP[Bright Data MCP]
-    VoC -->|"Reddit/forums search + scrape"| MCP
-    Jobs -->|"Job boards search + scrape"| MCP
+    subgraph Agents["Parallel Agents"]
+        direction TB
+        Scout[Scout Agent]
+        VoC[VoC Agent]
+        Jobs[Jobs Agent]
+    end
 
-    Scout -->|"Analyze landscape"| LLM[Claude Sonnet 4]
-    VoC -->|"Categorize pain points"| LLM
-    Jobs -->|"Extract hiring signals"| LLM
+    subgraph Services
+        direction TB
+        MCP[Bright Data MCP]
+        LLM[Claude Sonnet 4]
+    end
 
-    Scout --> Analyzer[Analyzer Agent]
-    VoC --> Analyzer
-    Jobs --> Analyzer
+    subgraph Analysis
+        Analyzer[Analyzer Agent]
+    end
 
-    Analyzer -->|"Cross-reference all signals"| LLM
-    Analyzer -->|"Ranked GapCards via SSE"| FE
+    User -->|Query| FE
+    FE -->|POST /analyze| API
+    Par --> Agents
+    Agents --> MCP
+    Agents --> LLM
+    Agents -->|Results| Analyzer
+    Analyzer --> LLM
+    Analyzer -->|GapCards via SSE| FE
 
-    style Par fill:#1e1b4b,stroke:#818cf8,color:#e0e7ff
     style Scout fill:#172554,stroke:#3b82f6,color:#bfdbfe
     style VoC fill:#2e1065,stroke:#8b5cf6,color:#ddd6fe
     style Jobs fill:#451a03,stroke:#f59e0b,color:#fef3c7
     style Analyzer fill:#052e16,stroke:#10b981,color:#d1fae5
-    style MCP fill:#1c1917,stroke:#a8a29e,color:#e7e5e4
-    style LLM fill:#1c1917,stroke:#a8a29e,color:#e7e5e4
+    style Par fill:#1e1b4b,stroke:#818cf8,color:#e0e7ff
 ```
 
 ## Agent Pipeline
@@ -205,19 +217,18 @@ blindspot/
 ## SSE Event Protocol
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Connected: POST /analyze
-    Connected --> Activity: event: activity
-    Activity --> Activity: Agent status updates
-    Activity --> Gap: event: gap
-    Gap --> Gap: Market gap cards
-    Gap --> Summary: event: summary
-    Summary --> Stats: event: stats
-    Stats --> Done: event: done
-    Done --> [*]
+flowchart LR
+    Start((Start)) --> Activity
+    Activity -->|activity events| Gap
+    Gap -->|gap events| Summary
+    Summary -->|summary| Stats
+    Stats -->|stats| Done((Done))
+    Activity -.->|error| Error((Error))
 
-    Activity --> Error: event: error
-    Error --> [*]
+    Activity[/"Activity\n agent status updates"/]
+    Gap[/"Gap\n market gap cards"/]
+    Summary[/"Summary\n aggregate analysis"/]
+    Stats[/"Stats\n API usage"/]
 ```
 
 | Event | Payload | Purpose |
