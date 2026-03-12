@@ -11,11 +11,11 @@ interface Props {
 
 export default function ActivityFeed({ activities, isLoading }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Always scroll to bottom when new activities arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [activities]);
 
   return (
@@ -38,6 +38,9 @@ export default function ActivityFeed({ activities, isLoading }: Props) {
           <div className="w-1 h-1 rounded-full bg-neutral-600 animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       )}
+
+      {/* Scroll anchor */}
+      <div ref={bottomRef} />
     </div>
   );
 }
