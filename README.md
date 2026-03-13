@@ -1,18 +1,132 @@
 # Blindspot
 
-**Multi-agent AI system that identifies untapped market opportunities** by orchestrating specialized agents in parallel — scraping, cross-referencing, and scoring live web signals to deliver ranked, evidence-backed market gap analysis in under 60 seconds.
-
-Built for VCs, product teams, and strategy consultants who need rapid market intelligence without weeks of manual research.
+Multi-agent AI system that identifies untapped market opportunities by orchestrating specialized agents in parallel — scraping, cross-referencing, and scoring live web signals to deliver ranked, evidence-backed market gap analysis in under 60 seconds.
 
 ## How It Works
 
-1. Enter a natural language query like *"Find market gaps in pet tech in the UK"*
-2. Three specialized agents launch in parallel, each researching a different signal:
-   - **Scout** — maps the competitive landscape (companies, categories, funding)
-   - **VoC** — mines customer pain points from Reddit, Trustpilot, and forums
-   - **Jobs** — analyzes hiring patterns to detect what companies are and aren't building
-3. An **Analyzer** agent cross-references all three sources to identify gaps where demand exists but supply doesn't
-4. Results are ranked by confidence using **evidence triangulation** — gaps confirmed by multiple independent sources score higher
+```mermaid
+flowchart LR
+    Q["Enter a query"] --> C[Coordinator]
+    C --> S["Scout Agent"]
+    C --> V["VoC Agent"]
+    C --> J["Jobs Agent"]
+
+    S -->|"Companies, categories, funding"| A[Analyzer]
+    V -->|"Pain points, complaints"| A
+    J -->|"Hiring patterns, skill gaps"| A
+
+    A -->|"Ranked GapCards"| UI["Dashboard"]
+
+    style S fill:#172554,stroke:#3b82f6,color:#bfdbfe
+    style V fill:#2e1065,stroke:#8b5cf6,color:#ddd6fe
+    style J fill:#451a03,stroke:#f59e0b,color:#fef3c7
+    style A fill:#052e16,stroke:#10b981,color:#d1fae5
+```
+
+Three agents run in parallel, each researching a different signal:
+
+- **Scout** — maps the competitive landscape (companies, categories, funding)
+- **VoC** — mines customer pain points from Reddit, Trustpilot, and forums
+- **Jobs** — analyzes hiring patterns to detect what's being built and what isn't
+
+An **Analyzer** cross-references all three to find gaps where demand exists but supply doesn't.
+
+## Architecture
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Next.js
+    participant API as FastAPI
+    participant BD as Bright Data MCP
+    participant LLM as Claude
+
+    U->>FE: Search query
+    FE->>API: POST /analyze
+
+    par Parallel execution
+        API->>BD: Scout: search + scrape
+        BD-->>API: Company data
+        API->>LLM: Analyze landscape
+        LLM-->>API: Structured JSON
+    and
+        API->>BD: VoC: search + scrape
+        BD-->>API: Forum threads
+        API->>LLM: Categorize complaints
+        LLM-->>API: Structured JSON
+    and
+        API->>BD: Jobs: search + scrape
+        BD-->>API: Job postings
+        API->>LLM: Extract signals
+        LLM-->>API: Structured JSON
+    end
+
+    API->>LLM: Cross-reference all 3
+    LLM-->>API: Ranked GapCards
+
+    API-->>FE: SSE stream
+    FE-->>U: Live dashboard
+```
+
+## Evidence Triangulation
+
+```mermaid
+flowchart TD
+    subgraph Sources["Independent Signals"]
+        S["Scout: 0/14 competitors offer X"]
+        V["VoC: 47 Reddit threads complain about X"]
+        J["Jobs: No companies hiring for X"]
+    end
+
+    S & V & J --> T{Triangulation}
+
+    T -->|"All 3 agree"| H["Confidence 8-10"]
+    T -->|"2 agree"| M["Confidence 5-8"]
+    T -->|"1 source"| L["Confidence 3-5"]
+
+    style H fill:#052e16,stroke:#10b981,color:#d1fae5
+    style M fill:#451a03,stroke:#f59e0b,color:#fef3c7
+    style L fill:#1e1b4b,stroke:#818cf8,color:#e0e7ff
+```
+
+Gaps confirmed by multiple independent sources score higher. Contradictory signals apply a -2 penalty.
+
+## SSE Event Flow
+
+```mermaid
+flowchart LR
+    Start((Start)) --> Activity
+    Activity -->|"Agent status updates"| Gap
+    Gap -->|"Market gap cards"| Summary
+    Summary -->|"Aggregate analysis"| Stats
+    Stats -->|"Usage metrics"| Done((Done))
+    Activity -.->|"On failure"| Error((Error))
+```
+
+| Event | Payload | Purpose |
+|-------|---------|---------|
+| `activity` | `{ agent, message }` | Real-time agent progress |
+| `gap` | `{ id, title, confidence, triangulation[] }` | Market gap discovery |
+| `summary` | `{ market_summary, companies_found }` | Aggregate analysis |
+| `stats` | `{ searches, scrapes, duration }` | API usage metrics |
+| `done` | `{}` | Stream complete |
+
+## Fault Tolerance
+
+```mermaid
+flowchart TD
+    A[Agent runs] --> C{Success?}
+    C -->|Yes| D[Use live data]
+    C -->|Timeout / Error| F[Load cached data]
+    D & F --> AN[Analyzer]
+    AN --> R[GapCards]
+
+    style F fill:#451a03,stroke:#f59e0b,color:#fef3c7
+```
+
+- Each agent has a 45s timeout
+- `asyncio.gather(return_exceptions=True)` — one failure doesn't crash others
+- Cached fallback data substitutes seamlessly
 
 ## Tech Stack
 
@@ -24,47 +138,6 @@ Built for VCs, product teams, and strategy consultants who need rapid market int
 | LLM | Claude Sonnet 4 (Anthropic API) |
 | Web Intelligence | Bright Data MCP Server |
 | Orchestration | `asyncio.gather()` |
-
-## Architecture
-
-```
-User Query
-    |
-    v
-FastAPI /analyze (SSE stream)
-    |
-    v
-Coordinator
-    |
-    +-- Scout Agent ----> Bright Data MCP (search + scrape) --> Claude --> Competitive Map
-    |
-    +-- VoC Agent ------> Bright Data MCP (search + scrape) --> Claude --> Pain Points
-    |
-    +-- Jobs Agent -----> Bright Data MCP (search + scrape) --> Claude --> Hiring Signals
-    |
-    v (all 3 in parallel)
-Analyzer Agent --> Claude (cross-reference) --> Ranked GapCards
-    |
-    v
-SSE stream --> Frontend Dashboard
-```
-
-## Confidence Scoring
-
-Gaps are scored by how many independent signals converge:
-
-- **8-10**: All 3 agents agree (no competitors + customer complaints + no hiring)
-- **5-8**: 2 agents agree
-- **3-5**: Single source only
-- **-2 penalty** if sources contradict
-
-## Features
-
-- **Real-time activity feed** — watch agents work with color-coded status updates
-- **Evidence triangulation bars** — see signal strength from each agent per gap
-- **Investment Memo export** — one-click VC-ready format with copy-to-clipboard
-- **Bright Data usage stats** — searches, pages scraped, duration displayed in footer
-- **Fault tolerance** — graceful fallback to cached data if any agent times out
 
 ## Quick Start
 
@@ -105,13 +178,6 @@ npm run dev
 
 Open **http://localhost:3000** and try: *"Find market gaps in pet tech in the UK"*
 
-### Verify
-
-```bash
-curl http://localhost:8055/health
-# {"status": "ok", "service": "blindspot"}
-```
-
 ## Project Structure
 
 ```
@@ -123,7 +189,7 @@ blindspot/
 │   ├── mcp_client.py        # Bright Data MCP wrapper
 │   ├── llm.py               # Async Anthropic client + JSON extraction
 │   ├── models.py            # Pydantic v2 models
-│   ├── fallback_data.py     # Pre-cached demo data
+│   ├── fallback_data.py     # Cached fallback data
 │   └── agents/
 │       ├── scout.py         # Competitive landscape mapping
 │       ├── voc.py           # Voice of Customer (Reddit, forums)
@@ -146,9 +212,9 @@ blindspot/
 │   │   │   ├── InvestmentMemo.tsx
 │   │   │   └── StatsFooter.tsx
 │   │   ├── hooks/
-│   │   │   └── useSSE.ts   # SSE stream handler
+│   │   │   └── useSSE.ts
 │   │   └── types/
-│   │       └── index.ts    # TypeScript interfaces
+│   │       └── index.ts
 │   └── package.json
 │
 └── CLAUDE.md
