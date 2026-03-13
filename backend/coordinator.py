@@ -5,7 +5,7 @@ WHY NOT LANGGRAPH:
 - asyncio.gather() does everything we need: parallel execution, error handling
 - No framework overhead, no state machines, no learning curve
 - The coordinator is pure Python logic, not an LLM agent
-- Simpler = more reliable = better for a 90-minute hackathon
+- Simpler = more reliable
 
 HOW IT WORKS:
 1. Parse the user's query to extract industry + geography
@@ -65,8 +65,7 @@ def _parse_query(query: str) -> tuple[str, str]:
         "fintech Germany" → ("fintech", "Germany")
         "pet tech" → ("pet tech", "global")
 
-    Uses simple regex patterns. We could use Claude for this but it's
-    overkill for a demo — and adds latency.
+    Uses simple regex patterns — fast and avoids an unnecessary LLM call.
     """
     query_lower = query.lower().strip()
 

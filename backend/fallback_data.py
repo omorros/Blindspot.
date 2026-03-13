@@ -1,5 +1,5 @@
 """
-Pre-cached fallback data for demo scenarios.
+Pre-cached fallback data for when agents fail or timeout.
 Used when Bright Data MCP is unavailable or too slow.
 """
 

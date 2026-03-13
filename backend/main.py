@@ -48,7 +48,7 @@ app = FastAPI(
 
 # ── CORS Middleware ─────────────────────────────────────────────
 # Without this, the browser would block our frontend from talking to our backend.
-# In production you'd restrict origins, but for a hackathon demo, allow everything.
+# In production you'd restrict origins. For development, allow everything.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],        # Allow any origin (frontend URL)
