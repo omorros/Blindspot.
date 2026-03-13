@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useAnalysis } from "@/hooks/useSSE";
 import SearchInput from "@/components/SearchInput";
@@ -13,6 +13,9 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { Particles } from "@/components/ui/particles";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { BorderBeam } from "@/components/ui/border-beam";
+import { Copy, Check } from "lucide-react";
+import { buildMemoText } from "@/lib/memo";
+import GapCardSkeleton from "@/components/GapCardSkeleton";
 
 export default function Home() {
   const { activities, gaps, stats, summary, isLoading, error, analyze, reset } =
@@ -20,6 +23,8 @@ export default function Home() {
   const [showMemo, setShowMemo] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [memoCopied, setMemoCopied] = useState(false);
+  const lastQueryRef = useRef("");
 
   const hasResults = gaps.length > 0;
 
@@ -38,6 +43,7 @@ export default function Home() {
 
   const handleAnalyze = useCallback(
     (query: string) => {
+      lastQueryRef.current = query;
       setHasStarted(true);
       setShowMemo(false);
       analyze(query);
@@ -45,11 +51,45 @@ export default function Home() {
     [analyze],
   );
 
+  const handleRetry = useCallback(() => {
+    if (lastQueryRef.current) {
+      handleAnalyze(lastQueryRef.current);
+    }
+  }, [handleAnalyze]);
+
   const handleReset = useCallback(() => {
     reset();
     setHasStarted(false);
     setShowMemo(false);
   }, [reset]);
+
+  const handleCopyMemo = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(buildMemoText(gaps, summary));
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = buildMemoText(gaps, summary);
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setMemoCopied(true);
+    setTimeout(() => setMemoCopied(false), 2000);
+  }, [gaps, summary]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Esc → reset to search (only when viewing results, not while typing in an input)
+      if (e.key === "Escape" && hasResults && !isLoading) {
+        e.preventDefault();
+        handleReset();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [hasResults, isLoading, handleReset]);
 
   // Count completed agents for progress
   const completedAgents = (["scout", "voc", "jobs"] as const).filter((agent) => {
@@ -114,11 +154,27 @@ export default function Home() {
                   </div>
                 </BlurFade>
 
-                {/* Error */}
+                {/* Error with retry */}
                 {error && (
                   <BlurFade delay={0}>
                     <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 mb-6 text-left">
-                      <p className="text-sm text-red-400">{error}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-red-400 mb-0.5">Analysis failed</p>
+                          <p className="text-xs text-red-400/70">{error}</p>
+                        </div>
+                        <button
+                          onClick={handleRetry}
+                          className="flex-none text-xs px-3 py-1.5 rounded-lg border border-red-500/30
+                                     text-red-400 hover:bg-red-500/10 hover:border-red-500/50
+                                     transition-all duration-200 flex items-center gap-1.5"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Retry
+                        </button>
+                      </div>
                     </div>
                   </BlurFade>
                 )}
@@ -267,6 +323,24 @@ export default function Home() {
 
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={handleCopyMemo}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-tertiary)]
+                               hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)]
+                               transition-all duration-200 flex items-center gap-1.5"
+                  >
+                    {memoCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Memo
+                      </>
+                    )}
+                  </button>
+                  <button
                     onClick={() => setShowMemo(!showMemo)}
                     className={`text-xs px-3.5 py-1.5 rounded-lg border transition-all duration-200 ${
                       showMemo
@@ -279,9 +353,13 @@ export default function Home() {
                   <button
                     onClick={handleReset}
                     className="text-xs px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)]
-                               hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)] transition-all duration-200"
+                               hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)] transition-all duration-200
+                               flex items-center gap-2"
                   >
                     New Search
+                    <kbd className="hidden sm:inline text-[9px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-overlay)] text-[var(--text-muted)]">
+                      Esc
+                    </kbd>
                   </button>
                 </div>
               </div>
@@ -360,6 +438,17 @@ export default function Home() {
                             <GapCardComponent gap={gap} rank={i + 1} />
                           </BlurFade>
                         ))}
+
+                        {/* Skeleton placeholders while gaps are still streaming */}
+                        {isLoading && (
+                          <BlurFade delay={0} duration={0.3}>
+                            <div className="space-y-4">
+                              {Array.from({ length: Math.max(1, 3 - gaps.length) }).map((_, i) => (
+                                <GapCardSkeleton key={`skeleton-${i}`} />
+                              ))}
+                            </div>
+                          </BlurFade>
+                        )}
                       </div>
                     </motion.div>
                   )}
