@@ -58,7 +58,12 @@ export default function SearchInput({ onSubmit, isLoading }: Props) {
                 Running...
               </span>
             ) : (
-              "Analyze"
+              <span className="flex items-center gap-2">
+                Analyze
+                <kbd className="text-[9px] px-1 py-0.5 rounded border border-[var(--surface-overlay)] bg-[var(--surface)] text-[var(--text-muted)] opacity-60">
+                  &crarr;
+                </kbd>
+              </span>
             )}
           </button>
         </div>
