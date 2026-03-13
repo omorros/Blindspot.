@@ -9,7 +9,7 @@ WHAT IT DOES:
 WHY THIS IS THE MOST IMPORTANT AGENT:
 - Real customer pain = real market opportunity
 - "47 Reddit threads cite pricing opacity" is more convincing than any market report
-- VCs (Cherry Ventures) care about demand signals over supply analysis
+- Demand signals are more actionable than supply analysis
 - Upvote counts serve as a proxy for how widely felt the pain is
 
 QUERY STRATEGY:
