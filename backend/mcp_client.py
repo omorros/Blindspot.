@@ -8,10 +8,10 @@ HOW MCP WORKS:
 - Once connected, we can call tools like "search_engine" and "scrape_as_markdown"
 - Each tool call is like a remote procedure call over the SSE connection
 
-WHY NOT JUST USE REST APIs?
+WHY MCP OVER REST APIs?
 - MCP handles session management, tool discovery, and error handling for us
 - One connection gives us access to ALL Bright Data tools
-- The MCP protocol is what the hackathon judges expect to see
+- Standardized protocol for tool interaction
 """
 import asyncio
 import json
@@ -216,7 +216,6 @@ class BrightDataMCP:
     async def get_session_stats(self, session: ClientSession) -> Optional[Dict]:
         """
         Get usage statistics from Bright Data.
-        Shows how much of their API we used — impressive for judges.
         """
         if "session_stats" in self._available_tools:
             try:
